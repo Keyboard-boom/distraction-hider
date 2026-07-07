@@ -22,7 +22,7 @@ body {
     radial-gradient(circle at 102% 0%, rgba(255, 255, 255, 0.72), transparent 30%),
     linear-gradient(180deg, #f8fbff 0%, #f5f6f9 52%, #eef2f7 100%);
   color: var(--label);
-  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font: 0.8125rem/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0;
   margin: 0;
   min-width: 380px;
@@ -81,7 +81,7 @@ button:disabled {
 }
 
 h1 {
-  font-size: 28px;
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.08;
   margin: 0;
@@ -93,7 +93,7 @@ p {
 
 #siteLabel {
   color: var(--secondary-label);
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 500;
   margin-top: 6px;
   max-width: 260px;
@@ -156,12 +156,12 @@ p {
 
 .actions span {
   color: var(--blue);
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1;
 }
 
 .actions strong {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -190,7 +190,7 @@ p {
 
 .tools button {
   color: rgba(0, 122, 255, 0.52);
-  font-size: 18px;
+  font-size: 1.125rem;
   min-height: 44px;
 }
 
@@ -216,7 +216,7 @@ p {
 
 .section-title span {
   color: var(--label);
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -224,7 +224,7 @@ p {
   background: rgba(0, 122, 255, 0.1);
   border-radius: 12px;
   color: var(--blue);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   min-width: 32px;
   padding: 4px 10px;
@@ -268,14 +268,14 @@ p {
 }
 
 .rule-label strong {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
 .rule-label span {
   color: var(--tertiary-label);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   margin-top: 3px;
 }
 
@@ -284,7 +284,7 @@ p {
   background: rgba(242, 242, 247, 0.9);
   border-radius: 14px;
   color: var(--secondary-label);
-  font-size: 18px;
+  font-size: 1.125rem;
   min-height: 38px;
   padding: 0;
 }
@@ -292,7 +292,7 @@ p {
 #emptyState {
   color: var(--tertiary-label);
   display: none;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   padding: 34px 12px 36px;
   text-align: center;
@@ -300,6 +300,6 @@ p {
 
 #errorText {
   color: #d70015;
-  font-size: 12px;
+  font-size: 0.75rem;
   min-height: 18px;
 }
