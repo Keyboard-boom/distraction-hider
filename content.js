@@ -1,5 +1,5 @@
 (() => {
-  const SCRIPT_VERSION = "0.1.2";
+  const SCRIPT_VERSION = "0.1.4";
   const existingController = window.__distractionHiderController;
 
   if (existingController?.version === SCRIPT_VERSION) {
