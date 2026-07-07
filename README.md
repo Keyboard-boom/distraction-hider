@@ -15,7 +15,7 @@
 1. 打开 Chrome 的 `chrome://extensions/`。
 2. 开启“开发者模式”。
 3. 点击“加载已解压的扩展程序”。
-4. 选择这个目录：`/Users/jh/Documents/New project/distraction-hider`。
+4. 选择拓展所在目录：例：`/Users/xxxxx/Documents/New project/distraction-hider`。
 
 ## 使用
 
