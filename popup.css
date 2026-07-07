@@ -17,7 +17,7 @@ button {
   align-items: center;
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 999px;
+  border-radius: 8px;
   color: inherit;
   cursor: pointer;
   display: inline-flex;
@@ -88,7 +88,7 @@ p {
 .switch-button {
   background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   flex: 0 0 48px;
   min-height: 28px;
   padding: 0;
@@ -100,7 +100,7 @@ p {
 
 .switch-track {
   background: #d2d2d7;
-  border-radius: 999px;
+  border-radius: 8px;
   display: block;
   height: 28px;
   padding: 2px;
@@ -110,7 +110,7 @@ p {
 
 .switch-thumb {
   background: #fff;
-  border-radius: 50%;
+  border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
   display: block;
   height: 24px;
@@ -202,7 +202,7 @@ p {
 
 .section-title b {
   background: rgba(0, 113, 227, 0.1);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #0071e3;
   font-size: 12px;
   min-width: 24px;
@@ -261,7 +261,7 @@ p {
 .delete-rule {
   aspect-ratio: 1;
   background: #f5f5f7;
-  border-radius: 50%;
+  border-radius: 8px;
   color: #6e6e73;
   min-height: 30px;
   padding: 0;
