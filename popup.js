@@ -98,8 +98,8 @@ const hostnameFromUrl = (url) => {
 
 const render = () => {
   elements.siteLabel.textContent = state.hostname || "当前页面不可用";
-  elements.toggleIcon.textContent = state.enabled ? "●" : "○";
-  elements.toggleIcon.style.color = state.enabled ? "#1f8a70" : "#8b948f";
+  elements.toggleSite.classList.toggle("is-on", state.enabled);
+  elements.toggleSite.setAttribute("aria-checked", String(state.enabled));
   elements.ruleCount.textContent = String(state.rules.length);
   elements.undoLast.disabled = state.rules.length === 0;
   elements.clearSite.disabled = state.rules.length === 0;

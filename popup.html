@@ -9,29 +9,31 @@
   <body>
     <main class="shell">
       <header class="topbar">
-        <div>
+        <div class="title-block">
           <h1>干扰隐藏</h1>
           <p id="siteLabel">读取当前页面...</p>
         </div>
-        <button id="toggleSite" class="icon-button" type="button" title="启用或暂停本站规则" aria-label="启用或暂停本站规则">
-          <span id="toggleIcon">●</span>
+        <button id="toggleSite" class="switch-button" type="button" role="switch" aria-checked="true" title="启用或暂停本站规则" aria-label="启用或暂停本站规则">
+          <span class="switch-track" aria-hidden="true">
+            <span id="toggleIcon" class="switch-thumb"></span>
+          </span>
         </button>
       </header>
 
       <section class="actions" aria-label="隐藏操作">
         <button id="pickExact" class="primary" type="button">
-          <span>⌖</span>
+          <span aria-hidden="true">⌖</span>
           <strong>选择隐藏</strong>
         </button>
         <button id="pickSimilar" type="button">
-          <span>≋</span>
+          <span aria-hidden="true">≋</span>
           <strong>隐藏相似</strong>
         </button>
       </section>
 
       <section class="tools" aria-label="管理规则">
-        <button id="undoLast" type="button" title="撤销上一条规则">↶</button>
-        <button id="clearSite" type="button" title="恢复当前站点">⟲</button>
+        <button id="undoLast" type="button" title="撤销上一条规则" aria-label="撤销上一条规则">↶</button>
+        <button id="clearSite" type="button" title="恢复当前站点" aria-label="恢复当前站点">⟲</button>
       </section>
 
       <section class="rules" aria-label="当前站点规则">
