@@ -1,52 +1,56 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-i18n-lang>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Distraction Hider</title>
+    <title data-i18n="appName"></title>
     <link rel="stylesheet" href="popup.css">
   </head>
-  <body>
+<body>
     <main class="shell">
       <header class="topbar">
         <div class="title-block">
-          <h1>干扰隐藏</h1>
-          <p id="siteLabel">读取当前页面...</p>
+          <h1 data-i18n="appName"></h1>
+          <p id="siteLabel"></p>
         </div>
-        <button id="toggleSite" class="switch-button" type="button" role="switch" aria-checked="true" title="启用或暂停本站规则" aria-label="启用或暂停本站规则">
+        <div class="topbar-actions">
+          <button id="langToggle" type="button" class="lang-toggle" data-i18n="langLabel"></button>
+        <button id="toggleSite" class="switch-button" type="button" role="switch" aria-checked="true" data-i18n-title="toggleTitle" data-i18n-aria-label="toggleTitle">
           <span class="switch-track" aria-hidden="true">
             <span id="toggleIcon" class="switch-thumb"></span>
           </span>
         </button>
+        </div>
       </header>
 
-      <section class="actions" aria-label="隐藏操作">
+      <section class="actions" data-i18n-aria-label="actionsLabel">
         <button id="pickExact" class="primary" type="button">
           <span aria-hidden="true">⌖</span>
-          <strong>选择隐藏</strong>
+          <strong data-i18n="pickExact"></strong>
         </button>
         <button id="pickSimilar" type="button">
           <span aria-hidden="true">≋</span>
-          <strong>隐藏相似</strong>
+          <strong data-i18n="pickSimilar"></strong>
         </button>
       </section>
 
-      <section class="tools" aria-label="管理规则">
-        <button id="undoLast" type="button" title="撤销上一条规则" aria-label="撤销上一条规则">↶</button>
-        <button id="clearSite" type="button" title="恢复当前站点" aria-label="恢复当前站点">⟲</button>
+      <section class="tools" data-i18n-aria-label="toolsLabel">
+        <button id="undoLast" type="button" data-i18n-title="undoTitle" data-i18n-aria-label="undoTitle">↶</button>
+        <button id="clearSite" type="button" data-i18n-title="clearTitle" data-i18n-aria-label="clearTitle">⟲</button>
       </section>
 
-      <section class="rules" aria-label="当前站点规则">
+      <section class="rules" data-i18n-aria-label="rulesLabel">
         <div class="section-title">
-          <span>本站规则</span>
+          <span data-i18n="sectionTitle"></span>
           <b id="ruleCount">0</b>
         </div>
         <ol id="ruleList"></ol>
-        <p id="emptyState">还没有隐藏任何项目</p>
+        <p id="emptyState"></p>
       </section>
 
       <p id="errorText" role="status"></p>
     </main>
+    <script src="translations.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

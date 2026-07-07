@@ -17,6 +17,7 @@ const elements = {
   siteLabel: $("#siteLabel"),
   toggleSite: $("#toggleSite"),
   toggleIcon: $("#toggleIcon"),
+  langToggle: $("#langToggle"),
   pickExact: $("#pickExact"),
   pickSimilar: $("#pickSimilar"),
   undoLast: $("#undoLast"),
@@ -47,6 +48,18 @@ const setBusy = (busy) => {
   ui.busy = busy;
   renderControlState();
 };
+const updateI18n = () => {
+  for (const el of document.querySelectorAll("[data-i18n]")) {
+    el.textContent = t(el.getAttribute("data-i18n"));
+  }
+  for (const el of document.querySelectorAll("[data-i18n-title]")) {
+    el.setAttribute("title", t(el.getAttribute("data-i18n-title")));
+  }
+  for (const el of document.querySelectorAll("[data-i18n-aria-label]")) {
+    el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria-label")));
+  }
+  document.documentElement.lang = getLang() === "zh" ? "zh-CN" : "en";
+};
 
 const sendToTab = (message) => {
   return new Promise((resolve, reject) => {
@@ -57,7 +70,7 @@ const sendToTab = (message) => {
         return;
       }
       if (!response || response.ok === false) {
-        reject(new Error(response?.error || "页面没有响应"));
+        reject(new Error(response?.error || t("noResponse")));
         return;
       }
       resolve(response);
@@ -95,21 +108,22 @@ const getPageState = async () => {
 
 const startPickingOnPage = async (mode) => {
   await injectContentScript();
+  const scriptNotUpdatedMsg = t("scriptNotUpdated");
   const [result] = await chrome.scripting.executeScript({
     target: { tabId: state.tabId },
-    func: (nextMode) => {
+    func: (nextMode, scriptNotUpdatedMsg) => {
       const controller = window.__distractionHiderController;
       if (!controller || typeof controller.startPicking !== "function") {
-        return { ok: false, error: "页面脚本仍未更新，请刷新当前网页后重试" };
+        return { ok: false, error: scriptNotUpdatedMsg };
       }
       controller.startPicking(nextMode === "similar" ? "similar" : "exact");
       return { ok: true, scriptVersion: controller.version, supportsBatchSelection: true };
     },
-    args: [mode]
+    args: [mode, scriptNotUpdatedMsg]
   });
 
   if (!result?.result?.ok) {
-    throw new Error(result?.result?.error || "无法开始选择");
+    throw new Error(result?.result?.error || t("cannotStart"));
   }
   return result.result;
 };
@@ -123,7 +137,7 @@ const hostnameFromUrl = (url) => {
 };
 
 const render = () => {
-  elements.siteLabel.textContent = state.hostname || "当前页面不可用";
+  elements.siteLabel.textContent = state.hostname || t("pageUnavailable");
   elements.toggleSite.classList.toggle("is-on", state.enabled);
   elements.toggleSite.setAttribute("aria-checked", String(state.enabled));
   elements.ruleCount.textContent = String(state.rules.length);
@@ -140,7 +154,7 @@ const render = () => {
     label.className = "rule-label";
 
     const title = document.createElement("strong");
-    title.textContent = rule.label || (rule.mode === "similar" ? "相似项目" : "隐藏项目");
+    title.textContent = rule.label || (rule.mode === "similar" ? t("similarLabel") : t("hiddenLabel"));
 
     const selector = document.createElement("span");
     selector.textContent = rule.selector;
@@ -148,8 +162,8 @@ const render = () => {
     const remove = document.createElement("button");
     remove.className = "delete-rule";
     remove.type = "button";
-    remove.title = "删除这条规则";
-    remove.setAttribute("aria-label", "删除这条规则");
+    remove.title = t("deleteRule");
+    remove.setAttribute("aria-label", t("deleteRule"));
     remove.textContent = "×";
     remove.disabled = ui.busy || !ui.ready;
     remove.addEventListener("click", () => runCommand({ type: "REMOVE_RULE", id: rule.id }));
@@ -188,6 +202,8 @@ const runCommand = async (message, closeAfter = false) => {
 };
 
 const init = async () => {
+  await loadLang();
+  updateI18n();
   setBusy(true);
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -196,7 +212,7 @@ const init = async () => {
     state.hostname = hostnameFromUrl(state.url);
 
     if (!state.tabId || !/^https?:|^file:/.test(state.url)) {
-      throw new Error("这个页面不支持隐藏规则");
+      throw new Error(t("pageNotSupported"));
     }
 
     const response = await getPageState();
@@ -204,7 +220,7 @@ const init = async () => {
     applyResponse(response);
   } catch (error) {
     ui.ready = false;
-    elements.siteLabel.textContent = state.hostname || "当前页面不可用";
+    elements.siteLabel.textContent = state.hostname || t("pageUnavailable");
     setError(error.message);
     renderControlState();
   } finally {
@@ -212,6 +228,15 @@ const init = async () => {
   }
 };
 
+elements.langToggle.addEventListener("click", async () => {
+  const newLang = getOtherLang();
+  await saveLang(newLang);
+  updateI18n();
+  render();
+  try {
+    chrome.tabs.sendMessage(state.tabId, { type: "SET_LANGUAGE", language: newLang });
+  } catch {}
+});
 elements.pickExact.addEventListener("click", () => runCommand({ type: "START_PICKING", mode: "exact" }, true));
 elements.pickSimilar.addEventListener("click", () => runCommand({ type: "START_PICKING", mode: "similar" }, true));
 elements.undoLast.addEventListener("click", () => runCommand({ type: "UNDO_LAST" }));

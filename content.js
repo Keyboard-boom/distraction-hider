@@ -1,5 +1,60 @@
 (() => {
   const SCRIPT_VERSION = "0.1.4";
+  const TRANSLATIONS = {
+    zh: {
+      bannerTitle:    ct("bannerTitle"),
+      bannerHint:     ct("bannerHint"),
+      selectedCount:  "已选 {0} 项",
+      cancel:         "取消",
+      confirm:        "确认隐藏",
+      deselected:     ct("deselected"),
+      similarSelected:ct("similarSelected"),
+      itemSelected:   ct("itemSelected"),
+      hiddenCount:    "已隐藏 {0} 项",
+      cancelled:      ct("cancelled"),
+      hideFailed:     "隐藏失败：{0}",
+      undoToast:      ct("undoToast"),
+      siteRestored:   ct("siteRestored"),
+      rulesEnabled:   ct("rulesEnabled"),
+      rulesPaused:    ct("rulesPaused"),
+    },
+    en: {
+      bannerTitle:    "Select elements to hide",
+      bannerHint:     "Click elements, select multiple",
+      selectedCount:  "{0} selected",
+      cancel:         "Cancel",
+      confirm:        "Hide",
+      deselected:     "Deselected",
+      similarSelected:"Similar items selected",
+      itemSelected:   "Item selected",
+      hiddenCount:    "Hidden {0} items",
+      cancelled:      "Cancelled",
+      hideFailed:     "Hide failed: {0}",
+      undoToast:      "Undone last hide rule",
+      siteRestored:   "Site restored",
+      rulesEnabled:   "Hide rules enabled",
+      rulesPaused:    "Hide rules paused",
+    }
+  };
+  let __lang = "zh";
+  function ct(key, ...args) {
+    let str = TRANSLATIONS[__lang]?.[key] || TRANSLATIONS["zh"]?.[key] || key;
+    if (args.length) {
+      str = str.replace(/\{(\d+)\}/g, (_, i) => {
+        const idx = parseInt(i, 10);
+        return idx < args.length ? String(args[idx]) : "";
+      });
+    }
+    return str;
+  }
+  async function loadContentLang() {
+    try {
+      const result = await chrome.storage.sync.get("language");
+      __lang = result.language || "zh";
+    } catch {
+      __lang = "zh";
+    }
+  }
   const existingController = window.__distractionHiderController;
 
   if (existingController?.version === SCRIPT_VERSION) {
@@ -126,12 +181,12 @@
       banner.id = BANNER_ID;
       banner.innerHTML = `
         <div class="dh-banner-text">
-          <strong>选择要隐藏的项目</strong>
-          <span id="dh-selected-count">点击页面元素，可连续多选</span>
+          <strong>${ct("bannerTitle")}</strong>
+          <span id="dh-selected-count">${ct("bannerHint")}</span>
         </div>
         <div class="dh-banner-actions">
-          <button type="button" data-dh-action="cancel">取消</button>
-          <button type="button" data-dh-action="confirm" disabled>确认隐藏</button>
+          <button type="button" data-dh-action="cancel">${ct("cancel")}</button>
+          <button type="button" data-dh-action="confirm" disabled>${ct("confirm")}</button>
         </div>
       `;
       banner.addEventListener("click", onBannerClick);
@@ -192,7 +247,7 @@
     const count = banner.querySelector("#dh-selected-count");
     const confirm = banner.querySelector('[data-dh-action="confirm"]');
     if (count) {
-      count.textContent = selectedRules.length ? `已选 ${selectedRules.length} 项` : "点击页面元素，可连续多选";
+      count.textContent = selectedRules.length ? ct("selectedCount", selectedRules.length) : ct("bannerHint");
     }
     if (confirm) {
       confirm.disabled = selectedRules.length === 0;
@@ -395,10 +450,10 @@
     const existingIndex = selectedRules.findIndex((rule) => rule.selector === nextRule.selector);
     if (existingIndex >= 0) {
       selectedRules.splice(existingIndex, 1);
-      showToast("已取消选择");
+      showToast(ct("deselected"));
     } else {
       selectedRules.push(nextRule);
-      showToast(pickMode === "similar" ? "已选择相似项目" : "已选择项目");
+      showToast(pickMode === "similar" ? ct("similarSelected") : ct("itemSelected"));
     }
     paintSelected();
   };
@@ -416,12 +471,12 @@
     const count = selectedRules.length;
     stopPicking();
     await saveCurrentSiteState({ ...siteState, rules });
-    showToast(`已隐藏 ${count} 项`);
+    showToast(ct("hiddenCount", count));
   };
 
   const cancelSelection = () => {
     stopPicking();
-    showToast("已取消");
+    showToast(ct("cancelled"));
   };
 
   const onBannerClick = (event) => {
@@ -430,7 +485,7 @@
     event.preventDefault();
     event.stopPropagation();
     if (button.dataset.dhAction === "confirm") {
-      confirmSelection().catch((error) => showToast(`隐藏失败：${error.message}`));
+      confirmSelection().catch((error) => showToast(ct("hideFailed", error.message)));
       return;
     }
     if (button.dataset.dhAction === "cancel") {
@@ -455,7 +510,7 @@
     try {
       toggleSelectedElement(element);
     } catch (error) {
-      showToast(`选择失败：${error.message}`);
+      showToast(ct("hideFailed", error.message));
     }
   };
 
@@ -466,7 +521,7 @@
     }
     if (event.key === "Enter" && selectedRules.length) {
       event.preventDefault();
-      confirmSelection().catch((error) => showToast(`隐藏失败：${error.message}`));
+      confirmSelection().catch((error) => showToast(ct("hideFailed", error.message)));
     }
   };
 
@@ -510,12 +565,12 @@
   const undoLast = async () => {
     const rules = siteState.rules.slice(0, -1);
     await saveCurrentSiteState({ ...siteState, rules });
-    showToast("已撤销上一条隐藏规则");
+    showToast(ct("undoToast"));
   };
 
   const clearSite = async () => {
     await saveCurrentSiteState({ enabled: true, rules: [] });
-    showToast("已恢复当前站点");
+    showToast(ct("siteRestored"));
   };
 
   const removeRule = async (id) => {
@@ -525,7 +580,7 @@
 
   const toggleSite = async () => {
     await saveCurrentSiteState({ ...siteState, enabled: !siteState.enabled });
-    showToast(siteState.enabled ? "隐藏规则已开启" : "隐藏规则已暂停");
+    showToast(siteState.enabled ? ct("rulesEnabled") : ct("rulesPaused"));
   };
 
   const stateResponse = () => ({
@@ -563,6 +618,21 @@
         await toggleSite();
         return stateResponse();
       }
+      if (message.type === "SET_LANGUAGE") {
+        __lang = message.language || "zh";
+        const banner = document.getElementById(BANNER_ID);
+        if (banner) {
+          const strong = banner.querySelector(".dh-banner-text strong");
+          const span = banner.querySelector("#dh-selected-count");
+          const cancel = banner.querySelector('[data-dh-action="cancel"]');
+          const confirm = banner.querySelector('[data-dh-action="confirm"]');
+          if (strong) strong.textContent = ct("bannerTitle");
+          if (span) span.textContent = ct("bannerHint");
+          if (cancel) cancel.textContent = ct("cancel");
+          if (confirm) confirm.textContent = ct("confirm");
+        }
+        return { ok: true };
+      }
       return { ok: false, error: "Unknown message" };
     })()
       .then(sendResponse)
@@ -581,6 +651,7 @@
   });
 
   const boot = async () => {
+    await loadContentLang();
     siteState = await getCurrentSiteState();
     applyRules();
   };
