@@ -459,69 +459,111 @@
   };
 
 
-        const playDissolveAnimation = async (elements) => {
-    if (!elements.length) return;
-    const parseColor = (s) => {
-      if (!s) return null;
-      const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-      if (m) return [+m[1],+m[2],+m[3]];
-      return null;
-    };
-    const getColors = (el) => {
-      const cs = [];
-      try {
-        const st = getComputedStyle(el);
-        for (const p of ["color","backgroundColor","borderTopColor","borderLeftColor","borderBottomColor","borderRightColor"]) {
-          const v = st[p];
-          if (v && v !== "transparent") cs.push(v);
-        }
-        for (const ch of el.querySelectorAll("*")) {
-          try { const v = getComputedStyle(ch).color; if (v && v !== "transparent") cs.push(v); } catch(e) {}
-        }
-      } catch(e) {}
-      const out = [];
-      for (const c of cs) { const p = parseColor(c); if (p) out.push(p); }
-      return out.length ? out : null;
-    };
-    const pal = [[255,99,132],[255,205,86],[75,192,192],[54,162,235],[153,102,255],[100,220,180],[255,182,193],[240,128,128],[175,238,238],[100,149,237],[255,218,160],[200,150,255],[152,255,152],[135,206,250],[255,255,255]];
-    const sheet = document.createElement("style");
-    sheet.textContent = "@keyframes dhF{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.5)}}@keyframes dhP{0%{opacity:1;transform:translate(0,0) scale(1) rotate(0deg)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0.2) rotate(var(--dr))}}";
-    document.head.appendChild(sheet);
-    const wrap = document.createElement("div");
-    wrap.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:2147483647;pointer-events:none;";
-    document.documentElement.appendChild(wrap);
-    for (const el of elements) {
-      if (!el || !document.documentElement.contains(el)) continue;
-      const r = el.getBoundingClientRect();
-      if (r.width <= 0 || r.height <= 0) continue;
-      const flash = document.createElement("div");
-      flash.style.cssText = "position:fixed;left:"+r.left+"px;top:"+r.top+"px;width:"+r.width+"px;height:"+r.height+"px;background:rgba(255,255,255,0.6);border-radius:"+(getComputedStyle(el).borderRadius||"0")+";animation:dhF 0.3s ease-out forwards;";
-      wrap.appendChild(flash);
-      const ec = getColors(el);
-      const use = ec&&ec.length ? ec.concat(pal) : pal;
-      const area = r.width * r.height;
-      const count = Math.min(200, Math.max(30, Math.round(area / 80)));
-      for (let i = 0; i < count; i++) {
-        const col = use[Math.random()*use.length|0];
-        const size = 2 + Math.random() * 5;
-        const ang = Math.random() * Math.PI * 2;
-        const dist = 20 + Math.random() * 100;
-        const dx = Math.cos(ang) * dist;
-        const dy = Math.sin(ang) * dist - 20;
-        const dr = (Math.random() - 0.5) * 720;
-        const dur = 400 + Math.random() * 600;
-        const p = document.createElement("div");
-        p.style.cssText = "position:fixed;left:"+(r.left + Math.random()*r.width)+"px;top:"+(r.top + Math.random()*r.height)+"px;width:"+size+"px;height:"+size+"px;background:rgb("+col[0]+","+col[1]+","+col[2]+");border-radius:"+(Math.random()>0.5?"50%":"2px")+";";
-        p.style.setProperty("--dx", dx+"px");
-        p.style.setProperty("--dy", dy+"px");
-        p.style.setProperty("--dr", dr+"deg");
-        p.style.animation = "dhP "+dur+"ms ease-out forwards";
-        wrap.appendChild(p);
+                    const playDissolveAnimation = async (elements) => {
+  if (!elements.length) return;
+  const pr = (s) => { if (!s) return null; const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/); return m ? [+m[1],+m[2],+m[3]] : null; };
+  const gc = (el) => {
+    const cs = [];
+    try {
+      const st = getComputedStyle(el);
+      for (const p of ["color","backgroundColor","borderTopColor","borderLeftColor","borderBottomColor","borderRightColor","boxShadow","textShadow"]) {
+        const v = st[p]; if (v && v !== "transparent" && v !== "rgba(0, 0, 0, 0)") cs.push(v);
       }
-    }
-    await new Promise(r => setTimeout(r, 1200));
-    wrap.remove(); sheet.remove();
+      for (const ch of el.querySelectorAll("*")) {
+        try {
+          const st2 = getComputedStyle(ch);
+          for (const p of ["color","backgroundColor"]) { const v = st2[p]; if (v && v !== "transparent" && v !== "rgba(0, 0, 0, 0)") cs.push(v); }
+        } catch(e) {}
+      }
+    } catch(e) {}
+    const out = [];
+    for (const c of cs) { const p = pr(c); if (p) out.push(p); }
+    return out.length ? out : null;
   };
+  const pal = [[255,99,132],[255,205,86],[75,192,192],[54,162,235],[153,102,255],[100,220,180],[240,128,128],[100,149,237],[255,218,160],[152,255,152],[135,206,250],[255,255,255]];
+  const sheet = document.createElement("style");
+  sheet.textContent = "@keyframes dhShrink{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.8)}}@keyframes dhFlash{0%{opacity:0.7}40%{opacity:0.3}100%{opacity:0}}";
+  document.head.appendChild(sheet);
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:2147483647;pointer-events:none;";
+  document.documentElement.appendChild(wrap);
+  const particles = [];
+  for (const el of elements) {
+    if (!el || !document.documentElement.contains(el)) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) continue;
+    const br = getComputedStyle(el).borderRadius || "0";
+    const cl = el.cloneNode(true);
+    for (const a of ["position","left","top","right","bottom","margin","transform","transition","animation","zIndex"]) cl.style.removeProperty(a);
+    cl.style.cssText = "position:fixed!important;left:"+r.left+"px!important;top:"+r.top+"px!important;width:"+r.width+"px!important;height:"+r.height+"px!important;margin:0!important;pointer-events:none!important;z-index:2147483647!important;border-radius:"+br+"!important;overflow:hidden!important;animation:dhShrink 0.4s ease-out forwards!important;";
+    wrap.appendChild(cl);
+    const flash = document.createElement("div");
+    flash.style.cssText = "position:fixed;left:"+r.left+"px;top:"+r.top+"px;width:"+r.width+"px;height:"+r.height+"px;background:white;border-radius:"+br+";animation:dhFlash 0.3s ease-out forwards;";
+    wrap.appendChild(flash);
+    const ec = gc(el);
+    const use = ec&&ec.length ? ec.concat(pal) : pal;
+    const area = r.width * r.height;
+    const cnt = Math.min(800, Math.max(100, Math.round(area / 18)));
+    for (let i = 0; i < cnt; i++) {
+      const col = use[Math.random()*use.length|0];
+      const a2 = Math.random() * 0.8 + 0.1;
+      const spd = 1 + Math.random() * 5;
+      const spread = Math.random() * 0.4;
+      const baseAng = -Math.PI * 0.35;
+      const ang = baseAng + (Math.random() - 0.5) * 0.8;
+      particles.push({
+        x: r.left + Math.random() * r.width,
+        y: r.top + Math.random() * r.height,
+        sz: 1.5 + Math.random() * 5,
+        rd: Math.random() > 0.35,
+        vx: Math.cos(ang) * spd * 1.2 + (Math.random() - 0.5) * 1,
+        vy: Math.sin(ang) * spd - 1 - Math.random() * 2,
+        g: 1.5 + Math.random() * 1.5,
+        dr: (Math.random() - 0.5) * 1080,
+        col: [col[0], col[1], col[2]],
+        dly: Math.random() * 0.08,
+        life: 0.5 + Math.random() * 0.35
+      });
+    }
+  }
+  if (!particles.length) {
+    await new Promise(r => setTimeout(r, 500));
+    wrap.remove(); sheet.remove(); return;
+  }
+  const cv = document.createElement("canvas");
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+  cv.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:2147483646;pointer-events:none;";
+  wrap.appendChild(cv);
+  const cx = cv.getContext("2d");
+  await new Promise(r => {
+    const t0 = performance.now();
+    const dr = (t) => {
+      const e = (t - t0) / 1000;
+      if (e > 1.15) { r(); return; }
+      cx.clearRect(0, 0, cv.width, cv.height);
+      for (const p of particles) {
+        if (e < p.dly) continue;
+        const a = e - p.dly;
+        if (a >= p.life) continue;
+        const f = a / p.life;
+        const al = Math.max(0, 1 - f * f * 0.9);
+        const x = p.x + p.vx * a * 60;
+        const y = p.y + p.vy * a * 60 + p.g * a * a * 50;
+        const s = p.sz * (1 - f * 0.55);
+        if (s < 0.5) continue;
+        cx.globalAlpha = al;
+        cx.fillStyle = "rgb("+p.col[0]+","+p.col[1]+","+p.col[2]+")";
+        if (p.rd) { cx.beginPath(); cx.arc(x, y, s/2, 0, Math.PI*2); cx.fill(); }
+        else { cx.fillRect(x-s/2, y-s/2, s, s); }
+      }
+      cx.globalAlpha = 1;
+      requestAnimationFrame(dr);
+    };
+    requestAnimationFrame(dr);
+  });
+  wrap.remove(); sheet.remove();
+};
 const confirmSelection = async () => {
     if (!selectedRules.length) return;
 
