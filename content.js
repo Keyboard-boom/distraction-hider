@@ -8,6 +8,7 @@
   const STYLE_ID = "dh-hide-rules";
   const BOX_ID = "dh-highlight-box";
   const BANNER_ID = "dh-select-banner";
+  const SELECTED_LAYER_ID = "dh-selected-layer";
   const TOAST_ID = "dh-toast";
   const MAX_RULES_PER_SITE = 250;
 
@@ -15,6 +16,7 @@
   let picking = false;
   let pickMode = "exact";
   let currentTarget = null;
+  let selectedRules = [];
   let toastTimer = 0;
 
   const hostname = () => location.hostname || "local-file";
@@ -22,7 +24,7 @@
   const nowId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
   const isExtensionUi = (node) => {
-    return Boolean(node && node.closest && node.closest(`#${BOX_ID}, #${BANNER_ID}, #${TOAST_ID}`));
+    return Boolean(node && node.closest && node.closest(`#${BOX_ID}, #${BANNER_ID}, #${SELECTED_LAYER_ID}, #${TOAST_ID}`));
   };
 
   const cssEscape = (value) => {
@@ -99,15 +101,33 @@
       document.documentElement.append(box);
     }
 
+    let selectedLayer = document.getElementById(SELECTED_LAYER_ID);
+    if (!selectedLayer) {
+      selectedLayer = document.createElement("div");
+      selectedLayer.id = SELECTED_LAYER_ID;
+      document.documentElement.append(selectedLayer);
+    }
+
     let banner = document.getElementById(BANNER_ID);
     if (!banner) {
       banner = document.createElement("div");
       banner.id = BANNER_ID;
-      banner.innerHTML = '点击页面元素隐藏它，按 <kbd>Esc</kbd> 取消';
+      banner.innerHTML = `
+        <div class="dh-banner-text">
+          <strong>选择要隐藏的项目</strong>
+          <span id="dh-selected-count">点击页面元素，可连续多选</span>
+        </div>
+        <div class="dh-banner-actions">
+          <button type="button" data-dh-action="cancel">取消</button>
+          <button type="button" data-dh-action="confirm" disabled>确认隐藏</button>
+        </div>
+      `;
+      banner.addEventListener("click", onBannerClick);
       document.documentElement.append(banner);
     }
 
-    return { box, banner };
+    updateBanner();
+    return { box, selectedLayer, banner };
   };
 
   const showToast = (message) => {
@@ -128,8 +148,10 @@
   const hideOverlay = () => {
     const box = document.getElementById(BOX_ID);
     const banner = document.getElementById(BANNER_ID);
+    const selectedLayer = document.getElementById(SELECTED_LAYER_ID);
     if (box) box.style.display = "none";
     if (banner) banner.remove();
+    if (selectedLayer) selectedLayer.remove();
   };
 
   const rectFor = (element) => {
@@ -150,6 +172,41 @@
     box.style.top = `${rect.top}px`;
     box.style.width = `${rect.width}px`;
     box.style.height = `${rect.height}px`;
+  };
+
+  const updateBanner = () => {
+    const banner = document.getElementById(BANNER_ID);
+    if (!banner) return;
+    const count = banner.querySelector("#dh-selected-count");
+    const confirm = banner.querySelector('[data-dh-action="confirm"]');
+    if (count) {
+      count.textContent = selectedRules.length ? `已选 ${selectedRules.length} 项` : "点击页面元素，可连续多选";
+    }
+    if (confirm) {
+      confirm.disabled = selectedRules.length === 0;
+    }
+  };
+
+  const paintSelected = () => {
+    const { selectedLayer } = ensureOverlay();
+    selectedLayer.replaceChildren();
+
+    for (const [index, rule] of selectedRules.entries()) {
+      if (!rule.element || !document.documentElement.contains(rule.element)) continue;
+      const rect = rectFor(rule.element);
+      if (rect.width <= 0 || rect.height <= 0) continue;
+
+      const marker = document.createElement("div");
+      marker.className = "dh-selected-box";
+      marker.style.left = `${rect.left}px`;
+      marker.style.top = `${rect.top}px`;
+      marker.style.width = `${rect.width}px`;
+      marker.style.height = `${rect.height}px`;
+      marker.dataset.index = String(index + 1);
+      selectedLayer.append(marker);
+    }
+
+    updateBanner();
   };
 
   const meaningfulClasses = (element) => {
@@ -308,20 +365,65 @@
     return `${element.localName}${id}${cls}`;
   };
 
-  const pickElement = async (element) => {
+  const draftRuleForElement = (element) => {
     const selector = pickMode === "similar" ? buildSimilarSelector(element) : buildExactSelector(element);
-    const nextRule = {
+    return {
       id: nowId(),
       selector,
       label: readableLabel(element),
       mode: pickMode,
       createdAt: Date.now(),
-      page: location.href
+      page: location.href,
+      element
     };
-    const rules = siteState.rules.filter((rule) => rule.selector !== selector);
-    rules.push(nextRule);
+  };
+
+  const toggleSelectedElement = (element) => {
+    const nextRule = draftRuleForElement(element);
+    const existingIndex = selectedRules.findIndex((rule) => rule.selector === nextRule.selector);
+    if (existingIndex >= 0) {
+      selectedRules.splice(existingIndex, 1);
+      showToast("已取消选择");
+    } else {
+      selectedRules.push(nextRule);
+      showToast(pickMode === "similar" ? "已选择相似项目" : "已选择项目");
+    }
+    paintSelected();
+  };
+
+  const confirmSelection = async () => {
+    if (!selectedRules.length) return;
+
+    const selectors = new Set(selectedRules.map((rule) => rule.selector));
+    const rules = siteState.rules.filter((rule) => !selectors.has(rule.selector));
+    for (const rule of selectedRules) {
+      const { element: _element, ...storedRule } = rule;
+      rules.push(storedRule);
+    }
+
+    const count = selectedRules.length;
+    stopPicking();
     await saveCurrentSiteState({ ...siteState, rules });
-    showToast(pickMode === "similar" ? "已隐藏相似项目" : "已隐藏项目");
+    showToast(`已隐藏 ${count} 项`);
+  };
+
+  const cancelSelection = () => {
+    stopPicking();
+    showToast("已取消");
+  };
+
+  const onBannerClick = (event) => {
+    const button = event.target.closest("[data-dh-action]");
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (button.dataset.dhAction === "confirm") {
+      confirmSelection().catch((error) => showToast(`隐藏失败：${error.message}`));
+      return;
+    }
+    if (button.dataset.dhAction === "cancel") {
+      cancelSelection();
+    }
   };
 
   const onMove = (event) => {
@@ -338,24 +440,30 @@
     event.stopPropagation();
     event.stopImmediatePropagation();
     const element = currentTarget;
-    stopPicking();
     try {
-      await pickElement(element);
+      toggleSelectedElement(element);
     } catch (error) {
-      showToast(`隐藏失败：${error.message}`);
+      showToast(`选择失败：${error.message}`);
     }
   };
 
   const onKeyDown = (event) => {
     if (event.key === "Escape") {
-      stopPicking();
-      showToast("已取消");
+      cancelSelection();
+      return;
+    }
+    if (event.key === "Enter" && selectedRules.length) {
+      event.preventDefault();
+      confirmSelection().catch((error) => showToast(`隐藏失败：${error.message}`));
     }
   };
 
   const onScroll = () => {
     if (picking && currentTarget) {
       paintHighlight(currentTarget);
+    }
+    if (picking && selectedRules.length) {
+      paintSelected();
     }
   };
 
@@ -366,21 +474,25 @@
     pickMode = mode;
     picking = true;
     currentTarget = null;
+    selectedRules = [];
     ensureOverlay();
     document.addEventListener("mousemove", onMove, true);
     document.addEventListener("click", onClick, true);
     document.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll, true);
   };
 
   const stopPicking = () => {
     picking = false;
     currentTarget = null;
+    selectedRules = [];
     hideOverlay();
     document.removeEventListener("mousemove", onMove, true);
     document.removeEventListener("click", onClick, true);
     document.removeEventListener("keydown", onKeyDown, true);
     window.removeEventListener("scroll", onScroll, true);
+    window.removeEventListener("resize", onScroll, true);
   };
 
   const undoLast = async () => {
