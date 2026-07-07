@@ -2,21 +2,21 @@
   const SCRIPT_VERSION = "0.1.4";
   const TRANSLATIONS = {
     zh: {
-      bannerTitle:    ct("bannerTitle"),
-      bannerHint:     ct("bannerHint"),
+      bannerTitle:    "选择要隐藏的项目",
+      bannerHint:     "点击页面元素，可连续多选",
       selectedCount:  "已选 {0} 项",
       cancel:         "取消",
       confirm:        "确认隐藏",
-      deselected:     ct("deselected"),
-      similarSelected:ct("similarSelected"),
-      itemSelected:   ct("itemSelected"),
+      deselected:     "已取消选择",
+      similarSelected:"已选择相似项目",
+      itemSelected:   "已选择项目",
       hiddenCount:    "已隐藏 {0} 项",
-      cancelled:      ct("cancelled"),
+      cancelled:      "已取消",
       hideFailed:     "隐藏失败：{0}",
-      undoToast:      ct("undoToast"),
-      siteRestored:   ct("siteRestored"),
-      rulesEnabled:   ct("rulesEnabled"),
-      rulesPaused:    ct("rulesPaused"),
+      undoToast:      "已撤销上一条隐藏规则",
+      siteRestored:   "已恢复当前站点",
+      rulesEnabled:   "隐藏规则已开启",
+      rulesPaused:    "隐藏规则已暂停",
     },
     en: {
       bannerTitle:    "Select elements to hide",
@@ -458,7 +458,71 @@
     paintSelected();
   };
 
-  const confirmSelection = async () => {
+
+        const playDissolveAnimation = async (elements) => {
+    if (!elements.length) return;
+    const parseColor = (s) => {
+      if (!s) return null;
+      const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (m) return [+m[1],+m[2],+m[3]];
+      return null;
+    };
+    const getColors = (el) => {
+      const cs = [];
+      try {
+        const st = getComputedStyle(el);
+        for (const p of ["color","backgroundColor","borderTopColor","borderLeftColor","borderBottomColor","borderRightColor"]) {
+          const v = st[p];
+          if (v && v !== "transparent") cs.push(v);
+        }
+        for (const ch of el.querySelectorAll("*")) {
+          try { const v = getComputedStyle(ch).color; if (v && v !== "transparent") cs.push(v); } catch(e) {}
+        }
+      } catch(e) {}
+      const out = [];
+      for (const c of cs) { const p = parseColor(c); if (p) out.push(p); }
+      return out.length ? out : null;
+    };
+    const pal = [[255,99,132],[255,205,86],[75,192,192],[54,162,235],[153,102,255],[100,220,180],[255,182,193],[240,128,128],[175,238,238],[100,149,237],[255,218,160],[200,150,255],[152,255,152],[135,206,250],[255,255,255]];
+    const sheet = document.createElement("style");
+    sheet.textContent = "@keyframes dhF{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.5)}}@keyframes dhP{0%{opacity:1;transform:translate(0,0) scale(1) rotate(0deg)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0.2) rotate(var(--dr))}}";
+    document.head.appendChild(sheet);
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:2147483647;pointer-events:none;";
+    document.documentElement.appendChild(wrap);
+    for (const el of elements) {
+      if (!el || !document.documentElement.contains(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) continue;
+      const flash = document.createElement("div");
+      flash.style.cssText = "position:fixed;left:"+r.left+"px;top:"+r.top+"px;width:"+r.width+"px;height:"+r.height+"px;background:rgba(255,255,255,0.6);border-radius:"+(getComputedStyle(el).borderRadius||"0")+";animation:dhF 0.3s ease-out forwards;";
+      wrap.appendChild(flash);
+      const ec = getColors(el);
+      const use = ec&&ec.length ? ec.concat(pal) : pal;
+      const area = r.width * r.height;
+      const count = Math.min(200, Math.max(30, Math.round(area / 80)));
+      for (let i = 0; i < count; i++) {
+        const col = use[Math.random()*use.length|0];
+        const size = 2 + Math.random() * 5;
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 20 + Math.random() * 100;
+        const dx = Math.cos(ang) * dist;
+        const dy = Math.sin(ang) * dist - 20;
+        const dr = (Math.random() - 0.5) * 720;
+        const dur = 400 + Math.random() * 600;
+        const p = document.createElement("div");
+        p.style.cssText = "position:fixed;left:"+(r.left + Math.random()*r.width)+"px;top:"+(r.top + Math.random()*r.height)+"px;width:"+size+"px;height:"+size+"px;background:rgb("+col[0]+","+col[1]+","+col[2]+");border-radius:"+(Math.random()>0.5?"50%":"2px")+";";
+        p.style.setProperty("--dx", dx+"px");
+        p.style.setProperty("--dy", dy+"px");
+        p.style.setProperty("--dr", dr+"deg");
+        p.style.animation = "dhP "+dur+"ms ease-out forwards";
+        wrap.appendChild(p);
+      }
+    }
+    await new Promise(r => setTimeout(r, 1200));
+    wrap.remove(); sheet.remove();
+  };
+const confirmSelection = async () => {
     if (!selectedRules.length) return;
 
     const selectors = new Set(selectedRules.map((rule) => rule.selector));
@@ -468,8 +532,10 @@
       rules.push(storedRule);
     }
 
+    const animElements = selectedRules.map((r) => r.element).filter(Boolean);
     const count = selectedRules.length;
     stopPicking();
+    await playDissolveAnimation(animElements);
     await saveCurrentSiteState({ ...siteState, rules });
     showToast(ct("hiddenCount", count));
   };
