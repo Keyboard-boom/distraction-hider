@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Distraction Hider</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>干扰隐藏</h1>
+          <p id="siteLabel">读取当前页面...</p>
+        </div>
+        <button id="toggleSite" class="icon-button" type="button" title="启用或暂停本站规则" aria-label="启用或暂停本站规则">
+          <span id="toggleIcon">●</span>
+        </button>
+      </header>
+
+      <section class="actions" aria-label="隐藏操作">
+        <button id="pickExact" class="primary" type="button">
+          <span>⌖</span>
+          <strong>选择隐藏</strong>
+        </button>
+        <button id="pickSimilar" type="button">
+          <span>≋</span>
+          <strong>隐藏相似</strong>
+        </button>
+      </section>
+
+      <section class="tools" aria-label="管理规则">
+        <button id="undoLast" type="button" title="撤销上一条规则">↶</button>
+        <button id="clearSite" type="button" title="恢复当前站点">⟲</button>
+      </section>
+
+      <section class="rules" aria-label="当前站点规则">
+        <div class="section-title">
+          <span>本站规则</span>
+          <b id="ruleCount">0</b>
+        </div>
+        <ol id="ruleList"></ol>
+        <p id="emptyState">还没有隐藏任何项目</p>
+      </section>
+
+      <p id="errorText" role="status"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Distraction Hider",
+  "version": "0.1.0",
+  "description": "Hide distracting elements on websites, Safari-style, with per-site saved rules.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "Hide distractions",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
