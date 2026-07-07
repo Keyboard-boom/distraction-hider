@@ -1,7 +1,19 @@
 (() => {
-  if (window.__distractionHiderLoaded) {
+  const SCRIPT_VERSION = "0.1.2";
+  const existingController = window.__distractionHiderController;
+
+  if (existingController?.version === SCRIPT_VERSION) {
     return;
   }
+
+  if (existingController?.dispose) {
+    try {
+      existingController.dispose();
+    } catch {
+      // A previous extension context can be invalid after reloading the extension.
+    }
+  }
+
   window.__distractionHiderLoaded = true;
 
   const STORE_KEY = "distractionHiderSites";
@@ -516,39 +528,49 @@
     showToast(siteState.enabled ? "隐藏规则已开启" : "隐藏规则已暂停");
   };
 
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  const stateResponse = () => ({
+    ok: true,
+    hostname: hostname(),
+    scriptVersion: SCRIPT_VERSION,
+    supportsBatchSelection: true,
+    ...siteState
+  });
+
+  const onRuntimeMessage = (message, _sender, sendResponse) => {
     (async () => {
       if (message.type === "GET_STATE") {
         siteState = await getCurrentSiteState();
         applyRules();
-        return { ok: true, hostname: hostname(), ...siteState };
+        return stateResponse();
       }
       if (message.type === "START_PICKING") {
         startPicking(message.mode === "similar" ? "similar" : "exact");
-        return { ok: true, hostname: hostname(), ...siteState };
+        return stateResponse();
       }
       if (message.type === "UNDO_LAST") {
         await undoLast();
-        return { ok: true, ...siteState };
+        return stateResponse();
       }
       if (message.type === "CLEAR_SITE") {
         await clearSite();
-        return { ok: true, ...siteState };
+        return stateResponse();
       }
       if (message.type === "REMOVE_RULE") {
         await removeRule(message.id);
-        return { ok: true, ...siteState };
+        return stateResponse();
       }
       if (message.type === "TOGGLE_SITE") {
         await toggleSite();
-        return { ok: true, ...siteState };
+        return stateResponse();
       }
       return { ok: false, error: "Unknown message" };
     })()
       .then(sendResponse)
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
-  });
+  };
+
+  chrome.runtime.onMessage.addListener(onRuntimeMessage);
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== "sync" || !changes[STORE_KEY]) return;
@@ -561,6 +583,19 @@
   const boot = async () => {
     siteState = await getCurrentSiteState();
     applyRules();
+  };
+
+  window.__distractionHiderController = {
+    version: SCRIPT_VERSION,
+    startPicking,
+    dispose() {
+      stopPicking();
+      try {
+        chrome.runtime.onMessage.removeListener(onRuntimeMessage);
+      } catch {
+        // The listener may already belong to an invalidated extension context.
+      }
+    }
   };
 
   boot();

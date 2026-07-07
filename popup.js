@@ -78,7 +78,12 @@ const injectContentScript = async () => {
 
 const getPageState = async () => {
   try {
-    return await sendToTab({ type: "GET_STATE" });
+    const response = await sendToTab({ type: "GET_STATE" });
+    if (response.supportsBatchSelection) {
+      return response;
+    }
+    await injectContentScript();
+    return sendToTab({ type: "GET_STATE" });
   } catch (error) {
     if (!/Receiving end does not exist|Could not establish connection/i.test(error.message)) {
       throw error;
@@ -86,6 +91,27 @@ const getPageState = async () => {
     await injectContentScript();
     return sendToTab({ type: "GET_STATE" });
   }
+};
+
+const startPickingOnPage = async (mode) => {
+  await injectContentScript();
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId: state.tabId },
+    func: (nextMode) => {
+      const controller = window.__distractionHiderController;
+      if (!controller || typeof controller.startPicking !== "function") {
+        return { ok: false, error: "页面脚本仍未更新，请刷新当前网页后重试" };
+      }
+      controller.startPicking(nextMode === "similar" ? "similar" : "exact");
+      return { ok: true, scriptVersion: controller.version, supportsBatchSelection: true };
+    },
+    args: [mode]
+  });
+
+  if (!result?.result?.ok) {
+    throw new Error(result?.result?.error || "无法开始选择");
+  }
+  return result.result;
 };
 
 const hostnameFromUrl = (url) => {
@@ -146,6 +172,11 @@ const runCommand = async (message, closeAfter = false) => {
   setError();
   setBusy(true);
   try {
+    if (message.type === "START_PICKING") {
+      const response = await startPickingOnPage(message.mode);
+      if (response.supportsBatchSelection && closeAfter) window.close();
+      return;
+    }
     const response = await sendToTab(message);
     applyResponse(response);
     if (closeAfter) window.close();
